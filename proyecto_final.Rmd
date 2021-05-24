@@ -1,0 +1,71 @@
+---
+title: "Análisis de Supervivencia"
+author: "Jose Reyes"
+date: "23/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(stringr)
+library(tidyverse)
+library(survival)
+library(KMsurv)
+library(actuar)
+library(BGPhazard)
+library(rmutil)
+```
+
+#Efecto de la Digoxina en Pacientes con Falla Cardiaca
+
+### Carga de datos
+```{r,warning=FALSE}
+df<-read_csv('DIG.csv')
+
+colnames(df)<-tolower(colnames(df))
+```
+
+#### Variables de Control 
+
+```{r}
+control<-c( 
+"id","trtmt","age","race","sex","ejf_per","ejfmeth","chestx","bmi","klevel","creat","digdoser","chfdur","rales",  
+"elevjvp","pedema","restdys","exertdys","actlimit","s3","pulcong","nsym","heartrte","diabp","sysbp","functcls","chfetiol","prevmi", 
+ "angina","diabetes","hyperten","diguse","diuretk","diuret","ksupp","aceinhib","nitrates","hydral","vasod","digdose")
+
+df_control<-df[control]
+```
+
+
+
+
+#### Datos para Muerte
+
+- 0 si el paciente vive
+- 1 si el paciente murió 
+
+Reason
+- 1=Worsening Heart Failure
+- 2=Other Cardiac
+- 3=Other Vascular
+- 4=Unknown
+- 5=Non cardiac, nonvascular cause
+
+
+
+```{r}
+df_death<-df[c("id","trtmt","death","deathday","reason")]
+
+```
+
+
+#### Datos para Hospitalización de Pacientes por falla Cardiaca
+
+- 0 si no fue hospitalizado ni murió por falla cardiaca
+- 1 si sí fue hospitalizado o murió por falla cardiaca
+
+```{r}
+df_hosp<-df[c("id","trtmt","dwhf","dwhfdays")]
+
+```
