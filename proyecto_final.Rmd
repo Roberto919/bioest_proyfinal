@@ -21,20 +21,21 @@ library(rmutil)
 
 ### Carga de datos
 ```{r,warning=FALSE}
-df<-read_csv('DIG.csv')
+df <- read_csv('DIG.csv')
 
-colnames(df)<-tolower(colnames(df))
+colnames(df) <- tolower(colnames(df))
 ```
 
 #### Variables de Control 
 
 ```{r}
-control<-c( 
+control <- c( 
 "id","trtmt","age","race","sex","ejf_per","ejfmeth","chestx","bmi","klevel","creat","digdoser","chfdur","rales",  
 "elevjvp","pedema","restdys","exertdys","actlimit","s3","pulcong","nsym","heartrte","diabp","sysbp","functcls","chfetiol","prevmi", 
- "angina","diabetes","hyperten","diguse","diuretk","diuret","ksupp","aceinhib","nitrates","hydral","vasod","digdose")
+ "angina","diabetes","hyperten","diguse","diuretk","diuret","ksupp","aceinhib","nitrates","hydral","vasod","digdose"
+)
 
-df_control<-df[control]
+df_control <- df[control]
 ```
 
 
@@ -55,7 +56,7 @@ Reason
 
 
 ```{r}
-df_death<-df[c("id","trtmt","death","deathday","reason")]
+df_death <- df[c("id","trtmt","death","deathday","reason")]
 
 ```
 
@@ -66,6 +67,6 @@ df_death<-df[c("id","trtmt","death","deathday","reason")]
 - 1 si sí fue hospitalizado o murió por falla cardiaca
 
 ```{r}
-df_hosp<-df[c("id","trtmt","dwhf","dwhfdays")]
+df_hosp <- df[c("id","trtmt","dwhf","dwhfdays")]
 
 ```
