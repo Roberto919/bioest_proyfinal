@@ -15,6 +15,7 @@ library(KMsurv)
 library(actuar)
 library(BGPhazard)
 library(rmutil)
+library(survminer)
 ```
 
 #Efecto de la Digoxina en Pacientes con Falla Cardiaca
@@ -29,7 +30,7 @@ colnames(df) <- tolower(colnames(df))
 #### Variables de Control 
 
 ```{r}
-control <- c( 
+control <- c(
 "id","trtmt","age","race","sex","ejf_per","ejfmeth","chestx","bmi","klevel","creat","digdoser","chfdur","rales",  
 "elevjvp","pedema","restdys","exertdys","actlimit","s3","pulcong","nsym","heartrte","diabp","sysbp","functcls","chfetiol","prevmi", 
  "angina","diabetes","hyperten","diguse","diuretk","diuret","ksupp","aceinhib","nitrates","hydral","vasod","digdose"
@@ -56,7 +57,8 @@ Reason
 
 
 ```{r}
-df_death <- df[c("id","trtmt","death","deathday","reason")]
+df_death<-df[c("id","trtmt","death","deathday","reason")]
+df_death$reason[is.na(df$reason)]<-0
 
 ```
 
@@ -68,5 +70,67 @@ df_death <- df[c("id","trtmt","death","deathday","reason")]
 
 ```{r}
 df_hosp <- df[c("id","trtmt","dwhf","dwhfdays")]
+
+```
+#### Estimador Kaplan-Maier
+
+### Muertes
+```{r}
+ggsurvplot(
+    fit = survfit(Surv(deathday, death) ~ trtmt, data = df_death,conf.type = "log-log"),
+    xlab = "Días",
+    ylab = "Probabilidad de Supervivencia",
+    legend.title = "Treatment",
+    legend.labs = c("Control",
+    "Treatment"),
+    conf.int = TRUE,
+    pval = TRUE,
+    size =.5,
+    linetype = "strata",
+    times=seq(0,1781+30,120))
+
+
+ci<-cmprsk::cuminc(
+    ftime = df_death$deathday,
+    fstatus = df_death$reason,
+    group = df_death$trtmt,
+    #strata = df_death$trtmt[df_death$death==1],
+    rho = 1,
+    cencode = 0,
+    )
+ggcompetingrisks(ci,
+                 multiple_panels = TRUE,
+                 xlab = "Días",
+                  ylab = "Incidencia Acumulada",
+                  title = "Muerte por tipo",
+                 legend.title = "Evento",
+                 conf.int = TRUE,
+    pval = TRUE,
+
+                  )
+
+ci$Tests
+
+
+
+```
+
+```{r}
+ggsurvplot(
+    fit = survfit(Surv(dwhfdays, dwhf) ~ trtmt, data = df_hosp,conf.type = "log-log"),
+    xlab = "Días",
+    ylab = "Probabilidad de Supervivencia",
+    legend.title = "Treatment",
+    legend.labs = c("Control",
+    "Treatment"),
+    conf.int = TRUE,
+    pval = TRUE,
+    size =.5,
+    linetype = "strata",
+    times=seq(0,1781+30,120))
+
+
+
+
 
 ```
