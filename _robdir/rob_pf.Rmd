@@ -22,7 +22,7 @@ library(survminer)
 
 ### Carga de datos
 ```{r,warning=FALSE}
-df <- read_csv('DIG.csv')
+df <- read_csv("../DIG.csv")
 
 colnames(df) <- tolower(colnames(df))
 ```
@@ -42,6 +42,7 @@ df_control <- df[control]
 
 
 
+
 #### Datos para Muerte
 
 - 0 si el paciente vive
@@ -57,10 +58,68 @@ Reason
 
 
 ```{r}
-df_death<-df[c("id","trtmt","death","deathday","reason")]
-df_death$reason[is.na(df$reason)]<-0
-
+df_death <- df[c("id","trtmt","death","deathday","reason")]
+df_death$reason[is.na(df$reason)] <- 0
 ```
+
+##### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
+
+###### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
+```{r}
+df_death %>% 
+    group_by(trtmt) %>% 
+    summarise(
+        total = n(),
+        deaths = sum(death)
+        ) %>% 
+    mutate(
+        prop = round(deaths/total, 3),
+        trtmt = ifelse(trtmt == 0, "Sin Tratamiento", "Con Tratamiento")
+        ) %>% 
+    ggplot(
+        aes(x = trtmt, y = prop, fill = trtmt)
+    ) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous(limits = c(0, 1)) + 
+    ylab("Proporción de muertes") + xlab("") + labs(fill = "") +
+    ggtitle("Proporción de muertes diferenciando por tratamiento")
+```
+Los datos sugieren que no hay una diferencia notoria en la situación final de los pacientes al diferenciar por tratamiento.
+
+
+
+###### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
+```{r}
+df_death
+```
+
+
+
+##### Análisis de regresión
+```{r}
+# dfxt <- 
+dfx <- df_death #%>%
+    # mutate(trtmt = ifelse(trtmt == 0, 1, 2))
+
+## Tiempos de muerte asumiendo que todas las obs. son exactas
+t <- Surv(dfx$deathday, seq(1, 1, , length(dfx$deathday)))
+
+## Asociación de los tiempos de muerte y la variable "tratamiento"
+xfit <- survfit(t ~ dfx$trtmt)
+
+## 
+n <- c(0, cumsum(xfit$n))
+for (l in 1:2){
+  tj <- xfit$time[(n[l] + 1):n[l + 1]]
+  sj <- xfit$surv[(n[l] + 1):n[l + 1]]
+  k <- length(tj)
+  sje <- 0.5*sj + 0.5*c(1, sj[-k]) ## Esta es la supervivencia corregida
+  plot(log(tj), log(-log(sje)), main=paste("Tratamiento = ", l))
+}
+```
+
+
+
 
 
 #### Datos para Hospitalización de Pacientes por falla Cardiaca
@@ -70,7 +129,6 @@ df_death$reason[is.na(df$reason)]<-0
 
 ```{r}
 df_hosp <- df[c("id","trtmt","dwhf","dwhfdays")]
-
 ```
 #### Estimador Kaplan-Maier
 
