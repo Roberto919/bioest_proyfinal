@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.Rproj.user
+
+## R
+.Rhistory
+bioest_proyfinal.Rproj
+
+## Pycharm
+.idea/
