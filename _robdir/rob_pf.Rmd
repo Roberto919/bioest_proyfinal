@@ -130,6 +130,30 @@ xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hypert
 summary(xfitr)
 ```
 
+#### Evaluación gráfica de covariables
+```{r}
+## Covariables seleccionadas
+cov_sel_base <- c("trtmt", "deathday", "death")
+cov_sel_demog <- c("age", "race")
+cov_sel_phy <- c("bmi", "heartrte", "diabetes", "hyperten")
+cov_sel <- c(cov_sel_base, cov_sel_demog)
+
+## Copia de datos originales
+dfx <- df %>% 
+    select(cov_sel)
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt + age, data = dfx)
+summary(xfitr)
+
+ftest <- cox.zph(xfitr)
+ggcoxzph(ftest)
+```
+
+
 
 ###### Covariables y mortalidad segmentando por razón de muerte
 ```{r}
@@ -168,7 +192,8 @@ summary(xfitr)
 
 ```{r}
 ## Copia de datos originales
-dfx <- df
+dfx <- df %>% 
+    select()
 
 ## Definición de objeto de supervivencia
 t <- Surv(dfx$deathday, dfx$death)
