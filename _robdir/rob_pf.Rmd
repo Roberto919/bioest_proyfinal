@@ -74,6 +74,9 @@ t <- Surv(dfx$deathday, dfx$death)
 ## Modelos base con distintas familias
 xfitr <- coxph(t ~ trtmt, data = dfx)
 summary(xfitr)
+
+## Cumulative hazard
+ggsurvplot(xfitr, data = dfx, fun = "cumhaz")
 ```
 
 #### Inclusión de covariables en mortalidad
@@ -94,6 +97,9 @@ t <- Surv(dfx$deathday, dfx$death)
 ## Modelos base con distintas familias
 xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hyperten, data = dfx)
 summary(xfitr)
+
+## Forest plot
+ggforest(xfitr)
 ```
 
 #### Uso de recursos de librería `survminer`
