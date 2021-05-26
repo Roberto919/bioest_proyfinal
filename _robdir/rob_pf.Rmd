@@ -96,26 +96,44 @@ df_death
 
 
 ##### Análisis de regresión
+
+###### Ajuste de modelo base
 ```{r}
-# dfxt <- 
-dfx <- df_death #%>%
-    # mutate(trtmt = ifelse(trtmt == 0, 1, 2))
+## Copia de datos originales
+dfx <- df_death
 
-## Tiempos de muerte asumiendo que todas las obs. son exactas
-t <- Surv(dfx$deathday, seq(1, 1, , length(dfx$deathday)))
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
 
-## Asociación de los tiempos de muerte y la variable "tratamiento"
-xfit <- survfit(t ~ dfx$trtmt)
+## Modelos base con distintas familias
+xfitr <- survreg(t ~ trtmt, data = dfx, dist = "weibull")
+summary(xfitr)
 
-## 
-n <- c(0, cumsum(xfit$n))
-for (l in 1:2){
-  tj <- xfit$time[(n[l] + 1):n[l + 1]]
-  sj <- xfit$surv[(n[l] + 1):n[l + 1]]
-  k <- length(tj)
-  sje <- 0.5*sj + 0.5*c(1, sj[-k]) ## Esta es la supervivencia corregida
-  plot(log(tj), log(-log(sje)), main=paste("Tratamiento = ", l))
-}
+xfitr <- survreg(t ~ trtmt, data = dfx, dist = "lognormal")
+summary(xfitr)
+
+xfitr <- survreg(t ~ trtmt, data = dfx, dist = "loglogistic")
+summary(xfitr)
+```
+
+
+###### Ajuste de modelo base
+```{r}
+## Copia de datos originales
+dfx <- df_death
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx, dist = "weibull")
+summary(xfitr)
+
+xfitr <- coxph(t ~ trtmt, data = dfx, dist = "lognormal")
+summary(xfitr)
+
+xfitr <- coxph(t ~ trtmt, data = dfx, dist = "loglogistic")
+summary(xfitr)
 ```
 
 
@@ -191,4 +209,33 @@ ggsurvplot(
 
 
 
+```
+
+
+
+
+
+### Notas adicionales (Rob)
+
+###### Pruebas adicionales
+```{r}
+## Asociación de los tiempos de muerte y la variable "tratamiento"
+# xfit <- survfit(t ~ dfx$trtmt)
+
+# t
+# xfit$n
+# xfit$time
+# xfit$n.event
+
+## 
+# n <- c(0, cumsum(xfit$n))
+# for (l in 1:2){
+#   # print((n[l] + 1):n[l + 1])
+#   print(paste0("Valor 1 = ", (n[l] + 1), "    Valor 2 = ", n[l + 1]))
+#   tj <- xfit$time[(n[2] + 1):n[2 + 1]]
+#   sj <- xfit$surv[(n[l] + 1):n[l + 1]]
+#   k <- length(tj)
+#   sje <- 0.5*sj + 0.5*c(1, sj[-k]) ## Esta es la supervivencia corregida
+#   plot(log(tj), log(-log(sje)), main=paste("Tratamiento = ", l))
+# }
 ```
