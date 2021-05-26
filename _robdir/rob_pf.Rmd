@@ -18,7 +18,7 @@ library(rmutil)
 library(survminer)
 ```
 
-#Efecto de la Digoxina en Pacientes con Falla Cardiaca
+# Efecto de la Digoxina en Pacientes con Falla Cardiaca
 
 ### Carga de datos
 ```{r,warning=FALSE}
@@ -62,6 +62,12 @@ df_death <- df[c("id","trtmt","death","deathday","reason")]
 df_death$reason[is.na(df$reason)] <- 0
 ```
 
+
+
+
+
+## Análisis de regresión: relación entre la muerte del paciente 
+
 ##### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
 
 ###### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
@@ -90,32 +96,13 @@ Los datos sugieren que no hay una diferencia notoria en la situación final de l
 
 ###### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
 ```{r}
-df_death
+## Pendiente
 ```
 
 
 
 ##### Análisis de regresión
 
-###### Ajuste de modelo base
-```{r}
-## Copia de datos originales
-dfx <- df_death
-
-## Definición de objeto de supervivencia
-t <- Surv(dfx$deathday, dfx$death)
-
-## Modelos base con distintas familias
-xfitr <- survreg(t ~ trtmt, data = dfx, dist = "weibull")
-summary(xfitr)
-
-xfitr <- survreg(t ~ trtmt, data = dfx, dist = "lognormal")
-summary(xfitr)
-
-xfitr <- survreg(t ~ trtmt, data = dfx, dist = "loglogistic")
-summary(xfitr)
-```
-
 
 ###### Ajuste de modelo base
 ```{r}
@@ -126,96 +113,48 @@ dfx <- df_death
 t <- Surv(dfx$deathday, dfx$death)
 
 ## Modelos base con distintas familias
-xfitr <- coxph(t ~ trtmt, data = dfx, dist = "weibull")
-summary(xfitr)
-
-xfitr <- coxph(t ~ trtmt, data = dfx, dist = "lognormal")
-summary(xfitr)
-
-xfitr <- coxph(t ~ trtmt, data = dfx, dist = "loglogistic")
+xfitr <- coxph(t ~ trtmt, data = dfx)
 summary(xfitr)
 ```
 
-
-
-
-
-#### Datos para Hospitalización de Pacientes por falla Cardiaca
-
-- 0 si no fue hospitalizado ni murió por falla cardiaca
-- 1 si sí fue hospitalizado o murió por falla cardiaca
-
+###### Ajuste de modelo con todas las covariables seleccionadas (demográficas y fisiológicas)
 ```{r}
-df_hosp <- df[c("id","trtmt","dwhf","dwhfdays")]
-```
-#### Estimador Kaplan-Maier
+## Covariables seleccionadas
+cov_sel_base <- c("trtmt", "deathday", "death")
+cov_sel_demog <- c("age", "race", "sex")
+cov_sel_phy <- c("bmi", "heartrte", "diabetes", "hyperten")
+cov_sel <- c(cov_sel_base, cov_sel_demog, cov_sel_phy)
 
-### Muertes
-```{r}
-ggsurvplot(
-    fit = survfit(Surv(deathday, death) ~ trtmt, data = df_death,conf.type = "log-log"),
-    xlab = "Días",
-    ylab = "Probabilidad de Supervivencia",
-    legend.title = "Treatment",
-    legend.labs = c("Control",
-    "Treatment"),
-    conf.int = TRUE,
-    pval = TRUE,
-    size =.5,
-    linetype = "strata",
-    times=seq(0,1781+30,120))
+## Copia de datos originales
+dfx <- df %>% 
+    select(cov_sel)
 
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
 
-ci<-cmprsk::cuminc(
-    ftime = df_death$deathday,
-    fstatus = df_death$reason,
-    group = df_death$trtmt,
-    #strata = df_death$trtmt[df_death$death==1],
-    rho = 1,
-    cencode = 0,
-    )
-ggcompetingrisks(ci,
-                 multiple_panels = TRUE,
-                 xlab = "Días",
-                  ylab = "Incidencia Acumulada",
-                  title = "Muerte por tipo",
-                 legend.title = "Evento",
-                 conf.int = TRUE,
-    pval = TRUE,
-
-                  )
-
-ci$Tests
-
-
-
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hyperten, data = dfx)
+summary(xfitr)
 ```
 
+
+###### Ajuste de modelo para entender efecto del tratamiento para cada una de las muertes
 ```{r}
-ggsurvplot(
-    fit = survfit(Surv(dwhfdays, dwhf) ~ trtmt, data = df_hosp,conf.type = "log-log"),
-    xlab = "Días",
-    ylab = "Probabilidad de Supervivencia",
-    legend.title = "Treatment",
-    legend.labs = c("Control",
-    "Treatment"),
-    conf.int = TRUE,
-    pval = TRUE,
-    size =.5,
-    linetype = "strata",
-    times=seq(0,1781+30,120))
+## Copia de datos originales
+dfx <- df %>% 
+    select(c(cov_sel, "reason")) %>% 
+    filter(!is.na(reason))
 
-
-
-
-
+## Regresión para cada uno de los tipos de muerte
 ```
 
 
 
 
 
-### Notas adicionales (Rob)
+
+
+### Notas adicionales...
 
 ###### Pruebas adicionales
 ```{r}
