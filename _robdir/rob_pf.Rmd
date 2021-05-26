@@ -57,20 +57,13 @@ Reason
 
 
 
-```{r}
-df_death <- df[c("id","trtmt","death","deathday","reason")]
-df_death$reason[is.na(df$reason)] <- 0
-```
+## Mortalidad
 
 
 
+### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
 
-
-## Análisis de regresión: relación entre la muerte del paciente 
-
-##### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
-
-###### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
+#### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
 ```{r}
 df_death %>% 
     group_by(trtmt) %>% 
@@ -94,17 +87,17 @@ Los datos sugieren que no hay una diferencia notoria en la situación final de l
 
 
 
-###### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
+#### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
 ```{r}
 ## Pendiente
 ```
 
 
 
-##### Análisis de regresión
+### Análisis de regresión
 
 
-###### Ajuste de modelo base
+#### Efecto del tratamiento en la mortalidad
 ```{r}
 ## Copia de datos originales
 dfx <- df_death
@@ -117,7 +110,7 @@ xfitr <- coxph(t ~ trtmt, data = dfx)
 summary(xfitr)
 ```
 
-###### Ajuste de modelo con todas las covariables seleccionadas (demográficas y fisiológicas)
+#### Inclusión de covariables en mortalidad
 ```{r}
 ## Covariables seleccionadas
 cov_sel_base <- c("trtmt", "deathday", "death")
@@ -138,16 +131,52 @@ summary(xfitr)
 ```
 
 
-###### Ajuste de modelo para entender efecto del tratamiento para cada una de las muertes
+###### Covariables y mortalidad segmentando por razón de muerte
 ```{r}
 ## Copia de datos originales
 dfx <- df %>% 
     select(c(cov_sel, "reason")) %>% 
     filter(!is.na(reason))
 
+
 ## Regresión para cada uno de los tipos de muerte
+
+#### Tipo de muerte 0
+val <- 1
+dfx <- dfx %>% 
+    filter(reason == val)
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hyperten, data = dfx)
+print(paste0("******** Regresión con muerte tipo: ", val, "********"))
+summary(xfitr)
 ```
 
+
+
+
+
+## Hospitalización
+
+### Análisis de regresión
+
+
+#### Efecto del tratamiento en la hospitalización
+
+```{r}
+## Copia de datos originales
+dfx <- df
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx)
+summary(xfitr)
+```
 
 
 
