@@ -1,0 +1,275 @@
+---
+title: "Análisis de Supervivencia"
+author: "Jose Reyes"
+date: "23/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(stringr)
+library(tidyverse)
+library(survival)
+library(KMsurv)
+library(actuar)
+library(BGPhazard)
+library(rmutil)
+library(survminer)
+```
+
+# Efecto de la Digoxina en Pacientes con Falla Cardiaca
+
+### Carga de datos
+```{r,warning=FALSE}
+df <- read_csv("../DIG.csv")
+
+colnames(df) <- tolower(colnames(df))
+```
+
+#### Variables de Control 
+
+```{r}
+control <- c(
+"id","trtmt","age","race","sex","ejf_per","ejfmeth","chestx","bmi","klevel","creat","digdoser","chfdur","rales",  
+"elevjvp","pedema","restdys","exertdys","actlimit","s3","pulcong","nsym","heartrte","diabp","sysbp","functcls","chfetiol","prevmi", 
+ "angina","diabetes","hyperten","diguse","diuretk","diuret","ksupp","aceinhib","nitrates","hydral","vasod","digdose"
+)
+
+df_control <- df[control]
+```
+
+
+
+
+
+#### Datos para Muerte
+
+- 0 si el paciente vive
+- 1 si el paciente murió 
+
+Reason
+- 1=Worsening Heart Failure
+- 2=Other Cardiac
+- 3=Other Vascular
+- 4=Unknown
+- 5=Non cardiac, nonvascular cause
+
+
+
+## Mortalidad
+
+
+### Análisis de regresión
+
+
+#### Efecto del tratamiento en la mortalidad
+```{r}
+## Copia de datos originales
+dfx <- df_death
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx)
+summary(xfitr)
+```
+
+#### Inclusión de covariables en mortalidad
+```{r}
+## Covariables seleccionadas
+cov_sel_base <- c("trtmt", "deathday", "death")
+cov_sel_demog <- c("age", "race", "sex")
+cov_sel_phy <- c("bmi", "heartrte", "diabetes", "hyperten")
+cov_sel <- c(cov_sel_base, cov_sel_demog, cov_sel_phy)
+
+## Copia de datos originales
+dfx <- df %>% 
+    select(cov_sel)
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hyperten, data = dfx)
+summary(xfitr)
+```
+
+#### Uso de recursos de librería `survminer`
+```{r}
+## Covariables seleccionadas
+cov_sel_base <- c("trtmt", "deathday", "death")
+cov_sel_demog <- c("age", "race")
+cov_sel_phy <- c("bmi", "heartrte", "diabetes", "hyperten")
+cov_sel <- c(cov_sel_base, cov_sel_demog)
+
+## Copia de datos originales
+dfx <- df %>% 
+    select(cov_sel)
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt + age, data = dfx)
+summary(xfitr)
+
+## Prueba de los riesgos proporcionales
+# ftest <- cox.zph(xfitr)
+# ggcoxzph(ftest)
+
+## Gráfica de los distintos tipos de residuales
+# ggcoxdiagnostics(xfitr, type = "deviance", ox.scale = "time")
+
+## Forest plot
+dfx <- dfx %>% 
+    mutate(age = ifelse(age > 70, ">70", "<=70"))
+t <- Surv(dfx$deathday, dfx$death)
+xfitr <- coxph(t ~ trtmt + age, data = dfx)
+ggforest(xfitr)
+```
+
+
+
+###### Covariables y mortalidad segmentando por razón de muerte
+```{r}
+## Copia de datos originales
+dfx <- df %>% 
+    select(c(cov_sel, "reason")) %>% 
+    filter(!is.na(reason))
+
+
+## Regresión para cada uno de los tipos de muerte
+
+#### Tipo de muerte 0
+val <- 3
+dfx <- dfx %>% 
+    filter(reason == val)
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$deathday, dfx$death)
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx) # + age + race + sex + bmi + heartrte + diabetes + hyperten
+print(paste0("******** Regresión con muerte tipo: ", val, "********"))
+summary(xfitr)
+```
+
+
+
+
+
+## Hospitalización
+
+### Análisis de regresión
+
+
+#### Efecto del tratamiento en la hospitalización por cualquier causa
+
+```{r}
+## Definición de variables relevantes
+cov_sel <- c(cov_sel_base)
+
+## Construcción de tabla para análisis
+dfx <- df %>%
+    filter(hosp == 1) %>% 
+    select(c(cov_sel, "hospdays", "hosp"))
+    
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$hospdays, seq(1, 1, , length(dfx$hospdays)))
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx)
+summary(xfitr)
+```
+
+
+#### Efecto del tratamiento en la hospitalización por problemas cardiacos
+
+```{r}
+## Definición de variables relevantes
+cov_sel <- c(cov_sel_base)
+
+## Construcción de tabla para análisis
+dfx <- df %>%
+    filter(
+        hosp == 1,
+        reason == 1 | reason == 2,
+        ) %>% 
+    select(c(cov_sel, "hospdays", "hosp"))
+    
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$hospdays, seq(1, 1, , length(dfx$hospdays)))
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx)
+summary(xfitr)
+```
+
+
+
+
+
+
+### Notas adicionales...
+
+### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
+
+#### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
+```{r}
+df_death %>% 
+    group_by(trtmt) %>% 
+    summarise(
+        total = n(),
+        deaths = sum(death)
+        ) %>% 
+    mutate(
+        prop = round(deaths/total, 3),
+        trtmt = ifelse(trtmt == 0, "Sin Tratamiento", "Con Tratamiento")
+        ) %>% 
+    ggplot(
+        aes(x = trtmt, y = prop, fill = trtmt)
+    ) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous(limits = c(0, 1)) + 
+    ylab("Proporción de muertes") + xlab("") + labs(fill = "") +
+    ggtitle("Proporción de muertes diferenciando por tratamiento")
+```
+Los datos sugieren que no hay una diferencia notoria en la situación final de los pacientes al diferenciar por tratamiento.
+
+
+
+#### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
+```{r}
+## Pendiente
+```
+
+
+
+
+
+###### Pruebas adicionales
+```{r}
+## Asociación de los tiempos de muerte y la variable "tratamiento"
+# xfit <- survfit(t ~ dfx$trtmt)
+
+# t
+# xfit$n
+# xfit$time
+# xfit$n.event
+
+## 
+# n <- c(0, cumsum(xfit$n))
+# for (l in 1:2){
+#   # print((n[l] + 1):n[l + 1])
+#   print(paste0("Valor 1 = ", (n[l] + 1), "    Valor 2 = ", n[l + 1]))
+#   tj <- xfit$time[(n[2] + 1):n[2 + 1]]
+#   sj <- xfit$surv[(n[l] + 1):n[l + 1]]
+#   k <- length(tj)
+#   sje <- 0.5*sj + 0.5*c(1, sj[-k]) ## Esta es la supervivencia corregida
+#   plot(log(tj), log(-log(sje)), main=paste("Tratamiento = ", l))
+# }
+```
