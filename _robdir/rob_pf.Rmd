@@ -60,40 +60,6 @@ Reason
 ## Mortalidad
 
 
-
-### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
-
-#### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
-```{r}
-df_death %>% 
-    group_by(trtmt) %>% 
-    summarise(
-        total = n(),
-        deaths = sum(death)
-        ) %>% 
-    mutate(
-        prop = round(deaths/total, 3),
-        trtmt = ifelse(trtmt == 0, "Sin Tratamiento", "Con Tratamiento")
-        ) %>% 
-    ggplot(
-        aes(x = trtmt, y = prop, fill = trtmt)
-    ) +
-    geom_bar(stat = "identity") +
-    scale_y_continuous(limits = c(0, 1)) + 
-    ylab("Proporción de muertes") + xlab("") + labs(fill = "") +
-    ggtitle("Proporción de muertes diferenciando por tratamiento")
-```
-Los datos sugieren que no hay una diferencia notoria en la situación final de los pacientes al diferenciar por tratamiento.
-
-
-
-#### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
-```{r}
-## Pendiente
-```
-
-
-
 ### Análisis de regresión
 
 
@@ -177,7 +143,7 @@ dfx <- df %>%
 ## Regresión para cada uno de los tipos de muerte
 
 #### Tipo de muerte 0
-val <- 1
+val <- 3
 dfx <- dfx %>% 
     filter(reason == val)
 
@@ -185,7 +151,7 @@ dfx <- dfx %>%
 t <- Surv(dfx$deathday, dfx$death)
 
 ## Modelos base con distintas familias
-xfitr <- coxph(t ~ trtmt + age + race + sex + bmi + heartrte + diabetes + hyperten, data = dfx)
+xfitr <- coxph(t ~ trtmt, data = dfx) # + age + race + sex + bmi + heartrte + diabetes + hyperten
 print(paste0("******** Regresión con muerte tipo: ", val, "********"))
 summary(xfitr)
 ```
@@ -199,15 +165,44 @@ summary(xfitr)
 ### Análisis de regresión
 
 
-#### Efecto del tratamiento en la hospitalización
+#### Efecto del tratamiento en la hospitalización por cualquier causa
 
 ```{r}
-## Copia de datos originales
-dfx <- df %>% 
-    select()
+## Definición de variables relevantes
+cov_sel <- c(cov_sel_base)
+
+## Construcción de tabla para análisis
+dfx <- df %>%
+    filter(hosp == 1) %>% 
+    select(c(cov_sel, "hospdays", "hosp"))
+    
 
 ## Definición de objeto de supervivencia
-t <- Surv(dfx$deathday, dfx$death)
+t <- Surv(dfx$hospdays, seq(1, 1, , length(dfx$hospdays)))
+
+## Modelos base con distintas familias
+xfitr <- coxph(t ~ trtmt, data = dfx)
+summary(xfitr)
+```
+
+
+#### Efecto del tratamiento en la hospitalización por problemas cardiacos
+
+```{r}
+## Definición de variables relevantes
+cov_sel <- c(cov_sel_base)
+
+## Construcción de tabla para análisis
+dfx <- df %>%
+    filter(
+        hosp == 1,
+        reason == 1 | reason == 2,
+        ) %>% 
+    select(c(cov_sel, "hospdays", "hosp"))
+    
+
+## Definición de objeto de supervivencia
+t <- Surv(dfx$hospdays, seq(1, 1, , length(dfx$hospdays)))
 
 ## Modelos base con distintas familias
 xfitr <- coxph(t ~ trtmt, data = dfx)
@@ -220,6 +215,41 @@ summary(xfitr)
 
 
 ### Notas adicionales...
+
+### Exploración inicial de pregunta: ¿Existe algún efecto del uso de la digoxina en la mortalidad?
+
+#### Análisis 1: ¿Qué porcentaje de la gente que tomo el medicamento se murió?
+```{r}
+df_death %>% 
+    group_by(trtmt) %>% 
+    summarise(
+        total = n(),
+        deaths = sum(death)
+        ) %>% 
+    mutate(
+        prop = round(deaths/total, 3),
+        trtmt = ifelse(trtmt == 0, "Sin Tratamiento", "Con Tratamiento")
+        ) %>% 
+    ggplot(
+        aes(x = trtmt, y = prop, fill = trtmt)
+    ) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous(limits = c(0, 1)) + 
+    ylab("Proporción de muertes") + xlab("") + labs(fill = "") +
+    ggtitle("Proporción de muertes diferenciando por tratamiento")
+```
+Los datos sugieren que no hay una diferencia notoria en la situación final de los pacientes al diferenciar por tratamiento.
+
+
+
+#### Análisis 2: ¿Cómo fue cambiando la proporción vivos/muertos de pacientes a lo largo del tiempo diferenciando por tratamiento/no_tratamiento?
+```{r}
+## Pendiente
+```
+
+
+
+
 
 ###### Pruebas adicionales
 ```{r}
