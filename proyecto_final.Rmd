@@ -152,7 +152,8 @@ print(xtable(tibble(x$time,x$n.risk,x$n.event,x$surv,x$std.err,x$lower,x$upper))
 #Modelo 1
 
 df$reason[is.na(df$reason)]<-0
-
+df$race[df$race==1]<-0
+df$race[df$race==2]<-1
 
 xfit1<-coxph(Surv(dwhfdays,dwhf)~trtmt+age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df)
   
@@ -164,8 +165,11 @@ xfit2<-coxph(Surv(deathday,death)~trtmt+age+race+sex+bmi+hyperten+diabetes+angin
 
 
 
-xfit3<-coxph(Surv(death,as.factor(reason),type="mstate")~trtmt++age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df,id=id)
+xfit3<-coxph(Surv(death,as.factor(reason),type="mstate")~trtmt+age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df,id=id)
                
+
+xfit3<-coxph(Surv(death,as.factor(reason),type="mstate")~trtmt+age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df,id=id)
+xfit4<-coxph(Surv(death,as.factor(reason),type="mstate")~trtmt++age+race+sex+bmi+hyperten+diabetes+angina+prevmi+diabetes*prevmi*angina*hyperten*bmi,data=df,id=id)      
 
 
 ```
