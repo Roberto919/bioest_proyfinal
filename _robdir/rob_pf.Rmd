@@ -76,7 +76,7 @@ xfitr <- coxph(t ~ trtmt, data = dfx)
 summary(xfitr)
 
 ## Cumulative hazard
-ggsurvplot(xfitr, data = dfx, fun = "cumhaz")
+# ggsurvplot(xfitr, data = dfx, fun = "cumhaz")
 ```
 
 #### Inclusión de covariables en mortalidad
@@ -211,6 +211,147 @@ t <- Surv(dfx$dwhfdays, dfx$dwhf)
 xfitr <- coxph(t ~ trtmt, data = dfx)
 summary(xfitr)
 ```
+
+
+
+
+
+## Análisis exploratorio
+
+### Distribución de la edad
+```{r}
+vals <- df %>% 
+    select(age) %>% 
+    summarise(
+        mean = mean(age),
+        median = median(age)
+    )
+
+vals
+
+df %>% 
+    ggplot(
+        aes(x = age)
+    ) + 
+    geom_histogram(fill = "#C3D7A4") +
+    theme_bw() +
+    geom_vline(xintercept = vals$mean, color = "red") + geom_vline(xintercept = vals$median, color = "blue") +
+    geom_text(
+        aes(x = round(vals$mean, 2), label = paste0("Media = ", round(vals$mean, 2)), y = 650),
+        colour="red", angle=90, vjust = -1
+        ) +
+    geom_text(
+        aes(x = round(vals$median, 2), label = paste0("\nMediana = ", round(vals$median, 2)), y = 650),
+        colour="blue", angle=90
+        ) +
+    xlab("Edad") + ylab("Conteo") + ggtitle("Distribución de la edad")
+```
+
+
+### Conteos de sexo segmentados por raza
+```{r}
+df %>% 
+    select(c("race", "sex")) %>% 
+    mutate(
+        race = ifelse(race == 1, "Blanco/a", "Otra"),
+        sex = ifelse(sex == 1, "Hombre", "Mujer"),
+    ) %>% 
+    group_by(sex, race) %>%
+    summarise(Conteo = n()) %>% 
+    ggplot(
+        aes(fill = race, y = Conteo, x = sex)
+    ) + 
+    theme_bw() +
+    geom_bar(position = "stack", stat = "identity") +
+    xlab(" ") + ggtitle("Participantes segmentados por sexo y raza") + labs(fill = "Raza")
+    
+```
+
+
+### Enfermedades crónicas
+```{r fig.height=5, fig.width = 12}
+## Infarto y angina de pecho
+plt_ma <- df %>%
+    select(c("prevmi", "angina")) %>%
+    filter(
+        !is.na(prevmi),
+        !is.na(angina),
+    ) %>%
+    mutate(
+        prevmi = ifelse(prevmi == 0, "Sin infarto", "Con infarto"),
+        angina = ifelse(angina == 0, "Sin angina", "Con angina")
+    ) %>%
+    group_by(prevmi, angina) %>%
+    summarise(n = n()) %>%
+    ggplot(
+        aes(x = prevmi, y = angina, fill = n)
+    ) +  
+    theme_minimal() +
+    theme(legend.position = "none") +
+    geom_tile() +
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    geom_text(aes(label = round(n, 2))) +
+    xlab("") + ylab("") + labs(fill = "Conteo")
+
+
+## Diabetes e hipertensión
+plt_dh <- df %>% 
+    select(c("diabetes", "hyperten")) %>% 
+    filter(
+        !is.na(diabetes),
+        !is.na(hyperten),
+    ) %>% 
+    mutate(
+        dia = ifelse(diabetes == 0, "Sin diabetes", "Con diabetes"),
+        hyp = ifelse(hyperten == 0, "Sin hipertensión", "Con hipertensión")
+    ) %>% 
+    group_by(dia, hyp) %>% 
+    summarise(Conteo = n()) %>% 
+    ggplot(
+        aes(x = dia, y = hyp, fill = Conteo)
+    ) + 
+    theme_minimal() +
+    theme(legend.position = "none") +
+    geom_tile() + 
+    scale_fill_gradient(low = "white", high = "steelblue") +
+    geom_text(aes(label = round(Conteo, 2))) + 
+    xlab("") + ylab("") + labs(fill = "Conteo")
+
+
+## Juntando las dos gráficas
+ggarrange(
+    plt_dh, plt_ma,
+    nrow = 1
+) %>% 
+    annotate_figure(
+        top = text_grob("Enfermedades crónicas de los participantes previo al estudio", size = 16)
+    )
+```
+
+
+### MBI
+```{r}
+df %>% 
+    select("bmi") %>% 
+    ggplot(
+        aes(x = bmi)
+    ) +
+    geom_boxplot(fill = "#56B4E9") +
+    theme_bw() +
+    theme(
+        axis.title.y=element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        ) +
+    xlab(" ") + ggtitle("Distribución del índice de masa corporal (BMI)")
+```
+
+
+
+### Gente del estudio que se hospitalizó (segmentado por cardiaco o no)
+
+### Gente del estudio que murió (segmentado por muerte)
+
 
 
 
