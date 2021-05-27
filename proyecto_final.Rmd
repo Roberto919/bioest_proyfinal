@@ -79,16 +79,23 @@ ggsurvplot(
     fit = survfit(Surv(deathday, death) ~ trtmt, data = df_death,conf.type = "log-log"), 
     xlab = "Días", 
     ylab = "Probabilidad de Supervivencia",
-    legend.title = "Treatment",
+    title = "Efecto de la Digoxina en Mortalidad",
     legend.labs = c("Control",
-    "Treatment"),
+    "Tratamiento"),
     conf.int = TRUE,
     pval = TRUE,
-    size =.5,
+    size =.0,
     linetype = "strata",
-    times=seq(0,1781+30,120))
+    times=seq(0,1781+30,120),
+    xlim=c(0,1800),
+    censor.shape = "|",
+    censor.size=2.5)
+mort<-survdiff(Surv(deathday, death) ~ trtmt,rho=0, data = df_death)
 
+mortfit<-survfit(Surv(deathday, death) ~ trtmt, data = df_death,conf.type = "log-log") 
+quantile(mortfit,c(.15,.25,.35,.45,.50,.55))
 
+summary(mortfit)
 ci<-cmprsk::cuminc(
     ftime = df_death$deathday, 
     fstatus = df_death$reason, 
@@ -97,39 +104,100 @@ ci<-cmprsk::cuminc(
     rho = 1,
     cencode = 0,
     )
+
+tp<-timepoints(ci,seq(1,1781,1))$est
+
+meantp<-as.vector(rowSums(1-tp,na.rm=TRUE))
+sdtp<-c()
+for(i in c(1:nrow(tp))){
+    sds<-c()
+    for (j in c(1:1000)){
+        s<-sample(1-tp[i,],replace=TRUE)
+        sds<-c(sds,sum(s,na.rm = TRUE))
+        
+    }
+    
+    sdtp<-c(sdtp,sd(sds,na.rm = TRUE))
+}
+
+ciinf<-meantp-1.96*sdtp
+cisup<-meantp+1.96*sdtp
+
+
+
+
 ggcompetingrisks(ci,
                  multiple_panels = TRUE,
                  xlab = "Días",
                   ylab = "Incidencia Acumulada",
-                  title = "Muerte por tipo",
+                  title = "Efecto de la Digoxina por Tipo de Muerte",
+                 
                  legend.title = "Evento",
                  conf.int = TRUE,
-    pval = TRUE,
+                 xlim=c(0,1800)
                 
                   )
 
 ci$Tests
 
 
+print(xtable(tibble(x$time,x$n.risk,x$n.event,x$surv,x$std.err,x$lower,x$upper)),include.rownames = FALSE)
+```
+
+
+
+### Regresión
+
+```{r}
+#Modelo 1
+
+df$reason[is.na(df$reason)]<-0
+
+
+xfit1<-coxph(Surv(dwhfdays,dwhf)~trtmt+age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df)
+  
+
+xfit2<-coxph(Surv(deathday,death)~trtmt+age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df)
+  
+
+  
+
+
+
+xfit3<-coxph(Surv(death,as.factor(reason),type="mstate")~trtmt++age+race+sex+bmi+hyperten+diabetes+angina+prevmi,data=df,id=id)
+               
+
 
 ```
 
+
+
+
+
 ```{r}
+
 ggsurvplot(
     fit = survfit(Surv(dwhfdays, dwhf) ~ trtmt, data = df_hosp,conf.type = "log-log"), 
     xlab = "Días", 
     ylab = "Probabilidad de Supervivencia",
-    legend.title = "Treatment",
+    title = "Efecto de la Digoxina en Hospitalización por Falla Cardiaca",
+    subtitles="por Falla Cardiaca",
     legend.labs = c("Control",
-    "Treatment"),
+    "Tratamiento"),
     conf.int = TRUE,
     pval = TRUE,
     size =.5,
     linetype = "strata",
-    times=seq(0,1781+30,120))
+    times=seq(0,1781+30,120),
+    xlim=c(0,1800))
+
+hosp<-survdiff(Surv(dwhfdays, dwhf) ~ trtmt, data = df_hosp) 
+
+hospfit<-survfit(Surv(dwhfdays, dwhf) ~ trtmt, data = df_hosp,conf.type = "log-log") 
+quantile(hospfit,c(.15,.25,.35,.45,.50,.55))
 
 
-
-
+x<-summary(hospfit,times = seq(0,1781+30,120))
+print(xtable(tibble(x$time,x$n.risk,x$n.event,x$surv,x$std.err,x$lower,x$upper)),include.rownames = FALSE)
 
 ```
