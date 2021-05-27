@@ -216,6 +216,40 @@ summary(xfitr)
 
 
 
+## Análisis exploratorio
+
+### Distribución de la edad
+```{r}
+vals <- df %>% 
+    select(age) %>% 
+    summarise(
+        mean = mean(age),
+        median = median(age)
+    )
+
+vals
+
+df %>% 
+    ggplot(
+        aes(x = age)
+    ) + 
+    geom_histogram(fill = "#C3D7A4") +
+    geom_vline(xintercept = vals$mean, color = "red") + geom_vline(xintercept = vals$median, color = "blue") +
+    geom_text(aes(x = round(vals$mean, 2), label=paste0("Media = ", round(vals$mean, 2)), y=650), colour="red", angle=90, text=element_text(size=11), vjust = -1) +
+    xlab("Edad") + ylab("Conteo") + ggtitle("Distribución de la edad")
+```
+
+
+### Conteos de sexo segmentados por raza
+
+### Gente del estudio que se hospitalizó (segmentado por cardiaco o no)
+
+### Gente del estudio que murió (segmentado por muerte)
+
+
+
+
+
 
 ### Notas adicionales...
 
